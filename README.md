@@ -219,8 +219,4 @@ Compiles an evidence package for a disputed return or chargeback (Defense-Only).
 }
 ```
 
----
 
-## 📜 License & Integrity Statement
-
-This project was engineered for Track 02 of the AI Risk Manager Hackathon. All code is original and developed under the MIT License.
