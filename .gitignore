@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+ENV/
+
+# Model Weights and Large Datasets (Trained on Kaggle)
+artifacts/models/*.pkl
+artifacts/models/*.pt
+artifacts/models/*.onnx
+artifacts/plots/*.png
+data/raw/
+*.csv
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

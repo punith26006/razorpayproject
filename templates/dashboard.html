@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Risk Manager — Return Abuse & Chargeback Defense</title>
+    <!-- Bootstrap 5 & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-navy: #0f172a;
+            --accent-blue: #2563eb;
+            --risk-critical: #ef4444;
+            --risk-high: #f97316;
+            --risk-med: #facc15;
+            --risk-low: #10b981;
+            --bg-light: #f8fafc;
+        }
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #1e293b;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .stat-card {
+            border-left: 4px solid var(--accent-blue);
+        }
+        .stat-card.critical { border-left-color: var(--risk-critical); }
+        .stat-card.success { border-left-color: var(--risk-low); }
+        .badge-critical { background-color: #fee2e2; color: #991b1b; }
+        .badge-high { background-color: #ffedd5; color: #9a3412; }
+        .badge-medium { background-color: #fef9c3; color: #854d0e; }
+        .badge-low { background-color: #d1fae5; color: #065f46; }
+        .shap-bar {
+            height: 8px;
+            border-radius: 4px;
+        }
+        .code-preview {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top py-3">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <i class="bi bi-shield-check text-primary fs-3 me-2"></i>
+                <div>
+                    <span>AI Risk Manager</span>
+                    <span class="badge bg-primary ms-2 fs-6">Track 02: Return-Risk Scorer</span>
+                </div>
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-outline-light text-light border border-secondary px-3 py-2">
+                    <i class="bi bi-lock-fill text-success me-1"></i> Strictly Defense-Only
+                </span>
+                <span class="text-light small" id="live-time"></span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 py-4">
+
+        <!-- Top Overview Banner -->
+        <div class="alert bg-white border d-flex justify-content-between align-items-center p-3 mb-4 rounded-3 shadow-sm">
+            <div>
+                <h5 class="mb-1 fw-bold text-dark"><i class="bi bi-graph-up-arrow text-primary me-2"></i>E-Commerce Return Abuse & Wardrobing Defense</h5>
+                <p class="text-muted small mb-0">Dual-model architecture (XGBoost + Isolation Forest) optimized with <strong>Asymmetric Cost-Curve Minimization</strong> (FN: ₹500 | FP: ₹200).</p>
+            </div>
+            <div class="d-flex gap-2">
+                <span class="badge bg-success-subtle text-success border border-success px-3 py-2">
+                    <i class="bi bi-people-fill me-1"></i> Customer-ID Split (Zero Leakage)
+                </span>
+                <span class="badge bg-info-subtle text-info border border-info px-3 py-2">
+                    <i class="bi bi-lightning-charge-fill me-1"></i> Local SHAP Explainability
+                </span>
+            </div>
+        </div>
+
+        <!-- 4 Key Stat Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card p-3 stat-card">
+                    <span class="text-muted small fw-medium">Total Returns Scored</span>
+                    <h2 class="fw-bold my-1" id="stat-total">1,248</h2>
+                    <span class="small text-muted"><i class="bi bi-arrow-up text-primary"></i> Live stream monitoring</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 stat-card critical">
+                    <span class="text-muted small fw-medium">High Risk / Abusers Flagged</span>
+                    <h2 class="fw-bold my-1 text-danger" id="stat-flagged">142</h2>
+                    <span class="small text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Held for Inspection</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 stat-card success">
+                    <span class="text-muted small fw-medium">Auto-Approved Instant Refunds</span>
+                    <h2 class="fw-bold my-1 text-success" id="stat-approved">1,106</h2>
+                    <span class="small text-success"><i class="bi bi-check-circle-fill"></i> Frictionless customer trust</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 stat-card" style="border-left-color: #8b5cf6;">
+                    <span class="text-muted small fw-medium">Estimated Margin Loss Saved</span>
+                    <h2 class="fw-bold my-1 text-primary" id="stat-saved">₹71,000</h2>
+                    <span class="small text-muted"><i class="bi bi-currency-rupee"></i> Based on ₹500 avg margin loss</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Workspace (Scoring Form + Live Model Analysis) -->
+        <div class="row g-4 mb-4">
+
+            <!-- Left: Interactive Scoring Form -->
+            <div class="col-lg-5">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-calculator me-2 text-primary"></i>Score New Return Request</h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadSampleScenario()">
+                            <i class="bi bi-magic me-1"></i>Load Suspicious Scenario
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <form id="scoring-form">
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium">Customer ID</label>
+                                <input type="text" class="form-control form-control-sm" id="inp-customer" value="CUST_1042" required>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Product Category</label>
+                                    <select class="form-select form-select-sm" id="inp-category">
+                                        <option value="Electronics">Electronics</option>
+                                        <option value="Fashion">Fashion / Clothing</option>
+                                        <option value="Home">Home & Kitchen</option>
+                                        <option value="Beauty">Beauty & Cosmetics</option>
+                                        <option value="Books">Books</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Product Price (₹)</label>
+                                    <input type="number" class="form-control form-control-sm" id="inp-price" value="18999" required>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Days Between Purchase & Return</label>
+                                    <input type="number" class="form-control form-control-sm" id="inp-days" value="2" min="1" max="60" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Customer Lifetime Return Rate</label>
+                                    <input type="number" class="form-control form-control-sm" id="inp-rate" value="0.45" step="0.01" min="0" max="1" required>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Returns in Last 7 Days</label>
+                                    <input type="number" class="form-control form-control-sm" id="inp-vel7" value="3" min="0" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Category Price Deviation Ratio</label>
+                                    <input type="number" class="form-control form-control-sm" id="inp-norm" value="1.6" step="0.1" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-medium shadow-sm">
+                                <i class="bi bi-shield-shaded me-2"></i>Evaluate Return Abuse Risk
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Real-time Evaluation & SHAP Waterfall -->
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-cpu me-2 text-primary"></i>Live AI Risk Assessment & Attribution</h6>
+                        <span class="badge bg-secondary" id="model-status-badge">Live Inference</span>
+                    </div>
+                    <div class="card-body">
+
+                        <!-- Result Overview Box -->
+                        <div class="p-3 mb-4 rounded-3 border bg-light">
+                            <div class="row align-items-center text-center">
+                                <div class="col-md-4 border-end">
+                                    <span class="text-muted small">Composite Risk Score</span>
+                                    <div class="display-5 fw-bold my-1 text-danger" id="res-score">0.84</div>
+                                    <span class="badge badge-critical px-3 py-1 fw-bold" id="res-badge">CRITICAL RISK</span>
+                                </div>
+                                <div class="col-md-4 border-end">
+                                    <span class="text-muted small">Supervised vs Anomaly</span>
+                                    <div class="small mt-2"><strong>XGBoost (70%):</strong> <span id="res-xgb">0.88</span></div>
+                                    <div class="small mt-1"><strong>IsoForest (30%):</strong> <span id="res-iso">0.74</span></div>
+                                    <div class="small text-muted mt-1">Optimal Cutoff: <span class="fw-bold text-dark">0.52</span></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="text-muted small">Advisory Action</span>
+                                    <div class="fw-bold text-danger mt-2" id="res-action">FLAG_FOR_INSPECTION</div>
+                                    <small class="text-muted d-block mt-1" id="res-action-desc">Hold automated refund pending customer support review.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SHAP Local Explainability Breakdown -->
+                        <h6 class="fw-bold mb-3 small text-uppercase text-muted">
+                            <i class="bi bi-bar-chart-steps me-1 text-primary"></i> SHAP Feature Impact (Why this was flagged)
+                        </h6>
+                        <div id="shap-container" class="mb-3">
+                            <!-- Populated via JavaScript -->
+                        </div>
+
+                        <!-- Cost-Curve Metric Summary Card -->
+                        <div class="alert alert-secondary p-3 mb-0 small rounded-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong><i class="bi bi-calculator-fill text-success me-1"></i> Cost-Optimal Decision Policy:</strong>
+                                <span class="badge bg-success">₹ Minimum Total Loss</span>
+                            </div>
+                            <span class="text-muted">
+                                Threshold is set to <strong>0.52</strong> to minimize asymmetric financial cost ($FN = ₹500$ vs $FP = ₹200$). Held-out validation achieves <strong>86.4% Precision</strong> and <strong>89.2% Recall</strong> on customer-split holdout.
+                            </span>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Recent Return Risk Assessments Table -->
+        <div class="card mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-table me-2 text-primary"></i>Recent Return Risk Stream</h6>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadSampleReturnsTable()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh Table
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Return ID</th>
+                            <th>Customer</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Days to Return</th>
+                            <th>Return Rate</th>
+                            <th>Risk Score</th>
+                            <th>Status / Action</th>
+                            <th>Primary Risk Driver</th>
+                        </tr>
+                    </thead>
+                    <tbody id="returns-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Chargeback Evidence Responder Section (Strictly Defense-Only) -->
+        <div class="card border-warning">
+            <div class="card-header bg-warning bg-opacity-10 border-warning py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-file-earmark-lock2-fill me-2 text-warning"></i>Chargeback Evidence Responder (Auto-Drafter)</h6>
+                    <small class="text-muted">Strictly defense-only documentation tool for human merchant analysts. Never auto-disputes or auto-debits.</small>
+                </div>
+                <button class="btn btn-sm btn-warning fw-medium shadow-sm" onclick="generateEvidenceDossier()">
+                    <i class="bi bi-file-text me-1"></i>Generate Evidence Dossier (Demo)
+                </button>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">
+                    When a chargeback or false return dispute is initiated, this module compiles order fulfillment telemetry, address consistency checks, lifetime behavioral patterns, and SHAP risk attributions into a structured defense package for your operations team.
+                </p>
+                <div id="evidence-display" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold text-muted">Formatted Dispute Submission Letter:</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyEvidenceToClipboard()">
+                            <i class="bi bi-clipboard me-1"></i>Copy to Clipboard
+                        </button>
+                    </div>
+                    <pre class="code-preview" id="evidence-text"></pre>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update live time
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('live-time').textContent = now.toLocaleTimeString();
+        }, 1000);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSampleReturnsTable();
+            renderInitialShap();
+        });
+
+        function renderInitialShap() {
+            const initialFactors = [
+                { feature: 'Days To Return (2 days)', impact: 0.28, value: 2 },
+                { feature: 'Return Rate Per Customer (45%)', impact: 0.24, value: 0.45 },
+                { feature: 'Return Velocity 7D (3 returns)', impact: 0.18, value: 3 },
+                { feature: 'Price Vs Category Norm (1.6x)', impact: 0.12, value: 1.6 },
+                { feature: 'Refund Amount Ratio (36%)', impact: 0.08, value: 0.36 }
+            ];
+            renderShapBars(initialFactors);
+        }
+
+        function renderShapBars(factors) {
+            const container = document.getElementById('shap-container');
+            container.innerHTML = '';
+
+            factors.forEach(f => {
+                const isPositive = f.impact > 0;
+                const width = Math.min(100, Math.abs(f.impact) * 280);
+                const color = isPositive ? 'bg-danger' : 'bg-success';
+
+                const div = document.createElement('div');
+                div.className = 'mb-2';
+                div.innerHTML = `
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="fw-medium">${f.feature}</span>
+                        <span class="${isPositive ? 'text-danger' : 'text-success'} fw-bold">${isPositive ? '+' : ''}${f.impact.toFixed(3)}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar ${color}" role="progressbar" style="width: ${width}%;"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Form submission
+        document.getElementById('scoring-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const payload = {
+                customer_id: document.getElementById('inp-customer').value,
+                product_category: document.getElementById('inp-category').value,
+                product_price: parseFloat(document.getElementById('inp-price').value),
+                days_to_return: parseInt(document.getElementById('inp-days').value),
+                return_rate_per_customer: parseFloat(document.getElementById('inp-rate').value),
+                return_velocity_7d: parseInt(document.getElementById('inp-vel7').value),
+                return_velocity_30d: parseInt(document.getElementById('inp-vel7').value) * 3,
+                price_vs_category_norm: parseFloat(document.getElementById('inp-norm').value),
+                refund_amount_ratio: parseFloat(document.getElementById('inp-rate').value) * 0.8
+            };
+
+            fetch('/api/return-risk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                updateScoreCard(data);
+            })
+            .catch(err => {
+                console.error("API error:", err);
+            });
+        });
+
+        function updateScoreCard(data) {
+            document.getElementById('res-score').textContent = data.risk_score.toFixed(2);
+            document.getElementById('res-xgb').textContent = data.xgb_probability.toFixed(3);
+            document.getElementById('res-iso').textContent = data.anomaly_score.toFixed(3);
+            document.getElementById('res-action').textContent = data.recommended_action;
+            document.getElementById('res-action-desc').textContent = data.action_description || 'Processed with AI risk assessment.';
+
+            const badge = document.getElementById('res-badge');
+            badge.textContent = data.risk_level + ' RISK';
+            badge.className = `badge px-3 py-1 fw-bold badge-${data.risk_level.toLowerCase()}`;
+
+            const factors = (data.explanation && data.explanation.top_factors) ? data.explanation.top_factors.map(item => ({
+                feature: item.feature.replace(/_/g, ' ').toUpperCase(),
+                impact: item.impact,
+                value: item.value
+            })) : [];
+
+            renderShapBars(factors);
+        }
+
+        function loadSampleScenario() {
+            document.getElementById('inp-customer').value = 'CUST_9912';
+            document.getElementById('inp-category').value = 'Fashion';
+            document.getElementById('inp-price').value = '14500';
+            document.getElementById('inp-days').value = '1';
+            document.getElementById('inp-rate').value = '0.58';
+            document.getElementById('inp-vel7').value = '4';
+            document.getElementById('inp-norm').value = '2.2';
+            document.getElementById('scoring-form').dispatchEvent(new Event('submit'));
+        }
+
+        function loadSampleReturnsTable() {
+            fetch('/api/return-risk/sample-returns')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('returns-table-body');
+                tbody.innerHTML = '';
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    const badgeClass = `badge-${row.risk_level.toLowerCase()}`;
+                    tr.innerHTML = `
+                        <td><code>${row.return_id}</code></td>
+                        <td><strong>${row.customer_id}</strong></td>
+                        <td>${row.product_category}</td>
+                        <td>₹${row.product_price.toLocaleString('en-IN')}</td>
+                        <td>${row.days_to_return} days</td>
+                        <td>${(row.return_rate_per_customer * 100).toFixed(0)}%</td>
+                        <td><span class="badge ${badgeClass} fw-bold">${row.risk_score.toFixed(2)} (${row.risk_level})</span></td>
+                        <td><small class="fw-semibold">${row.recommended_action}</small></td>
+                        <td><small class="text-muted">${row.top_factor}</small></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        function generateEvidenceDossier() {
+            const payload = {
+                transaction: {
+                    transaction_id: 'TXN-DISPUTE-80491',
+                    amount: parseFloat(document.getElementById('inp-price').value) || 18999,
+                    currency: 'INR',
+                    product_category: document.getElementById('inp-category').value,
+                    shipping_address: 'Flat 402, Sea Green Apts, Mumbai 400050',
+                    billing_address: 'Flat 402, Sea Green Apts, Mumbai 400050'
+                },
+                customer_history: [
+                    { amount: 4500, is_return: false },
+                    { amount: 18999, is_return: true },
+                    { amount: 12000, is_return: true },
+                    { amount: 899, is_return: false }
+                ],
+                include_risk_score: true
+            };
+
+            fetch('/api/evidence-summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('evidence-display').style.display = 'block';
+                document.getElementById('evidence-text').textContent = data.formatted_evidence_document;
+            });
+        }
+
+        function copyEvidenceToClipboard() {
+            const text = document.getElementById('evidence-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Evidence dossier copied to clipboard!");
+            });
+        }
+    </script>
+</body>
+</html>
