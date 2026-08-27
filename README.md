@@ -95,10 +95,20 @@ This system satisfies the hackathon's disqualification rule:
 
 ```
 razorpayproject/
-├── app.py                      # Production Flask backend & REST API
-├── requirements.txt            # Minimal, pinned Python dependencies
-├── .gitignore                  # Ignores large raw datasets & model weights
+├── app.py                      # Python ML Microservice (XGBoost + IsoForest + SHAP)
+├── requirements.txt            # Python dependencies
+├── .gitignore                  # Ignores large raw datasets & node_modules
 ├── README.md                   # Complete architectural & evaluation documentation
+│
+├── gateway/                    # 🚀 NestJS / TypeScript Merchant API Gateway
+│   ├── package.json            # Node.js dependencies (class-validator, axios)
+│   ├── tsconfig.json           # TypeScript configuration
+│   └── src/
+│       ├── main.ts             # Gateway bootstrap (port 3000)
+│       ├── app.module.ts       # Root module
+│       ├── returns/            # Return scoring & batch evaluation module
+│       ├── disputes/           # Razorpay webhook & evidence drafting module
+│       └── metrics/            # Cost-curve & benchmark telemetry module
 │
 ├── ml_pipeline/
 │   ├── kaggle_training.py      # Complete Kaggle training pipeline (Run on Kaggle)
@@ -109,31 +119,49 @@ razorpayproject/
 │   └── responder.py            # Defense-only chargeback evidence auto-drafter
 │
 ├── templates/
-│   └── dashboard.html          # Sleek, interactive web dashboard (Bootstrap 5 + Chart.js)
+│   └── dashboard.html          # Sleek web dashboard (Cost-Curve Simulator + Stream Test)
 │
-└── artifacts/
-    ├── models/                 # Target folder for Kaggle .pkl and .json models
-    └── plots/                  # Generated evaluation charts (Cost Curve, ROC, SHAP)
+├── artifacts/
+│   └── models/                 # Evaluation reports and feature mapping
+│
+└── tests/
+    └── test_risk_manager.py    # Automated Python test suite
 ```
 
 ---
 
 ## 🚀 Quick Start Guide
 
-### 1. Run Locally (Demo Mode)
-
-Clone the repository and run the application:
+### Option A: Run the Full-Stack Microservices (NestJS Gateway + Python ML)
 
 ```bash
-# 1. Install dependencies
+# 1. Start the Python ML Engine (Terminal 1)
 pip install -r requirements.txt
+python app.py  # Runs on http://localhost:5000
 
-# 2. Start the web application
-python app.py
+# 2. Start the NestJS Gateway (Terminal 2)
+cd gateway
+npm install
+npm run start:dev  # Runs on http://localhost:3000
 ```
 
+The NestJS Gateway exposes enterprise merchant endpoints:
+- `POST http://localhost:3000/api/v1/returns/score` (Evaluates return request)
+- `POST http://localhost:3000/api/v1/returns/batch` (Evaluates batch of return requests)
+- `POST http://localhost:3000/api/v1/disputes/evidence` (Generates defense dossier)
+- `POST http://localhost:3000/api/v1/disputes/webhook` (Ingests Razorpay dispute webhooks)
+- `GET  http://localhost:3000/api/v1/metrics/cost-curve` (Exposes loss curve metrics)
+
+---
+
+### Option B: Run Python Web Dashboard Directly
+
+```bash
+pip install -r requirements.txt
+python app.py
+```
 Open your browser and navigate to **`http://localhost:5000`**.  
-The dashboard will run with interactive live scoring, SHAP attributions, and evidence generation.
+The dashboard will run with interactive live scoring, the **Cost-Curve & False-Positive Tradeoff Explorer**, SHAP attributions, and evidence generation.
 
 ---
 
