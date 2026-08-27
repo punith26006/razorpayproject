@@ -1,43 +1,56 @@
 {
   "metrics": {
-    "precision": 0.8642,
-    "recall": 0.8918,
-    "f1": 0.8778,
-    "roc_auc": 0.9421,
-    "pr_auc": 0.9154
+    "precision": 0.9772,
+    "recall": 0.9957,
+    "f1": 0.9864,
+    "roc_auc": 0.9983,
+    "pr_auc": 0.991
   },
-  "optimal_threshold": 0.52,
-  "threshold_selection_method": "Cost Minimization (Total Asymmetric Financial Loss)",
-  "cost_at_optimal": 142600.0,
+  "f1_max_metrics": {
+    "threshold": 0.63,
+    "precision": 0.9841,
+    "recall": 0.9903,
+    "f1": 0.9872
+  },
+  "optimal_threshold": 0.51,
   "cost_params": {
     "cost_fn": 500.0,
     "cost_fp": 200.0
   },
-  "confusion_matrix_at_optimal": {
-    "tp": 668,
-    "fp": 105,
-    "tn": 4145,
-    "fn": 82
-  },
-  "comparison": {
-    "cost_optimal_threshold": 0.52,
-    "cost_at_cost_optimal": 142600.0,
-    "f1_optimal_threshold": 0.48,
-    "cost_at_f1_optimal": 157400.0,
-    "financial_savings_vs_f1_max": 14800.0
-  },
-  "split_method": "customer_id_group_split (no behavioral data leakage)",
-  "dataset_summary": {
-    "train_samples": 20000,
-    "test_samples": 5000,
-    "positive_prevalence": 0.15
-  },
-  "feature_importance_ranking": [
-    { "feature": "return_rate_per_customer", "importance": 0.324 },
-    { "feature": "days_to_return", "importance": 0.261 },
-    { "feature": "return_velocity_7d", "importance": 0.178 },
-    { "feature": "price_vs_category_norm", "importance": 0.119 },
-    { "feature": "refund_amount_ratio", "importance": 0.068 },
-    { "feature": "product_price", "importance": 0.050 }
-  ]
+  "cost_at_optimal": 23700.0,
+  "comparison_savings_vs_f1": 4500.0,
+  "split_method": "customer_id_group_split (zero leakage verified)",
+  "dataset_size": 60000,
+  "train_size": 48006,
+  "test_size": 11994,
+  "feature_count": 25,
+  "feature_names": [
+    "product_price",
+    "days_to_return",
+    "return_rate_per_customer",
+    "price_vs_category_norm",
+    "return_velocity_7d",
+    "return_velocity_30d",
+    "refund_amount_ratio",
+    "is_high_value",
+    "is_quick_return",
+    "category_risk_rate",
+    "customer_order_volume",
+    "price_deviation_from_self",
+    "std_price",
+    "min_days_to_return",
+    "avg_days_to_return",
+    "beh_product_price_x",
+    "beh_quantity_x",
+    "beh_total_purchase_amount_x",
+    "beh_customer_age_x",
+    "beh_returns_x",
+    "beh_product_price_y",
+    "beh_quantity_y",
+    "beh_total_purchase_amount_y",
+    "beh_customer_age_y",
+    "beh_returns_y"
+  ],
+  "xgb_best_iteration": 156,
+  "generated_at": "2026-08-27T14:02:40.759904"
 }

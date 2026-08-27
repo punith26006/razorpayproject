@@ -132,10 +132,43 @@ class ReturnRiskScorer:
             return self._demo_score(data)
 
     def _build_feature_vector(self, data: dict) -> pd.DataFrame:
-        """Convert input dictionary into model-compatible DataFrame."""
+        """Convert input dictionary into model-compatible DataFrame with smart defaults for derived features."""
+        price = float(data.get("product_price", 2500.0))
+        days = float(data.get("days_to_return", 10.0))
+        return_rate = float(data.get("return_rate_per_customer", 0.15))
+        price_norm = float(data.get("price_vs_category_norm", 1.0))
+        vel_7d = float(data.get("return_velocity_7d", 1.0))
+        vel_30d = float(data.get("return_velocity_30d", vel_7d * 3.0))
+        refund_ratio = float(data.get("refund_amount_ratio", return_rate * 0.85))
+        order_vol = float(data.get("customer_order_volume", max(2.0, vel_7d * 4.0)))
+
+        derived_defaults = {
+            "product_price": price,
+            "days_to_return": days,
+            "return_rate_per_customer": return_rate,
+            "price_vs_category_norm": price_norm,
+            "return_velocity_7d": vel_7d,
+            "return_velocity_30d": vel_30d,
+            "refund_amount_ratio": refund_ratio,
+            "is_high_value": 1.0 if (price_norm > 1.5 or price > 8000) else 0.0,
+            "is_quick_return": 1.0 if days <= 3.0 else 0.0,
+            "category_risk_rate": 0.32 if str(data.get("product_category", "")).lower() in ["clothing", "fashion", "apparel"] else 0.22,
+            "customer_order_volume": order_vol,
+            "price_deviation_from_self": float(data.get("price_deviation_from_self", abs(price_norm - 1.0) * 0.4)),
+            "std_price": float(data.get("std_price", price * 0.3)),
+            "min_days_to_return": float(data.get("min_days_to_return", days)),
+            "avg_days_to_return": float(data.get("avg_days_to_return", days)),
+        }
+
         row = {}
         for feat in self.feature_names:
-            row[feat] = float(data.get(feat, 0.0))
+            if feat in data:
+                row[feat] = float(data[feat])
+            elif feat in derived_defaults:
+                row[feat] = float(derived_defaults[feat])
+            else:
+                row[feat] = 0.0
+
         return pd.DataFrame([row], columns=self.feature_names)
 
     def _demo_score(self, data: dict) -> dict:

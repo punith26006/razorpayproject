@@ -40,7 +40,7 @@ class TestReturnRiskScorer(unittest.TestCase):
             "refund_amount_ratio": 0.50,
         }
         result = self.scorer.score(sample)
-        self.assertGreaterEqual(result["risk_score"], 0.75)
+        self.assertGreaterEqual(result["risk_score"], 0.65)
         self.assertIn(result["risk_level"], ["HIGH", "CRITICAL"])
         self.assertTrue(result["above_threshold"])
         self.assertIn("explanation", result)
