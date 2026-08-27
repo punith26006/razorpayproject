@@ -41,47 +41,118 @@ except Exception:
 # ## 1. Data Ingestion & Fallback Pipeline
 
 # %%
-input_dir = '/kaggle/input/e-commerce-return-abuse-detection-dataset/'
+# All possible dataset paths — covers BOTH datasets the user added on Kaggle
+SEARCH_PATHS = [
+    '/kaggle/input/datasets/sarveshchhetri/e-commerce-return-abuse-detection-dataset/',
+    '/kaggle/input/datasets/shriyashjagtap/e-commerce-customer-for-behavior-analysis/',
+    '/kaggle/input/e-commerce-return-abuse-detection-dataset/',
+    '/kaggle/input/e-commerce-customer-for-behavior-analysis/',
+    '/kaggle/input/',
+]
+
 work_dir = '/kaggle/working/'
 os.makedirs(work_dir, exist_ok=True)
 plots_dir = os.path.join(work_dir, 'plots')
 os.makedirs(plots_dir, exist_ok=True)
 
-csv_files = glob.glob(os.path.join(input_dir, '*.csv'))
+# Collect all CSVs from all added datasets
+all_csv_files = []
+for search_path in SEARCH_PATHS:
+    found = glob.glob(os.path.join(search_path, '**', '*.csv'), recursive=True)
+    all_csv_files.extend(found)
+all_csv_files = list(set(all_csv_files))
+print(f"Found {len(all_csv_files)} CSV files: {all_csv_files}")
 
-if csv_files:
-    print(f"Loading dataset from: {csv_files[0]}")
-    df = pd.read_csv(csv_files[0])
+def normalize_df(raw_df, source_name="unknown"):
+    """Normalize any e-commerce CSV into our standard 5-column schema."""
+    df = raw_df.copy()
+    df.columns = [c.lower().strip().replace(' ', '_') for c in df.columns]
+
+    # --- customer_id ---
+    for col in ['customer_id', 'customerid', 'customer', 'user_id', 'userid', 'cust_id']:
+        if col in df.columns:
+            df['customer_id'] = df[col].astype(str); break
+    if 'customer_id' not in df.columns:
+        df['customer_id'] = [f"CUST_{i % 3000}" for i in range(len(df))]
+
+    # --- product_category ---
+    for col in ['product_category', 'category', 'item_category', 'product_type', 'department']:
+        if col in df.columns:
+            df['product_category'] = df[col].astype(str); break
+    if 'product_category' not in df.columns:
+        df['product_category'] = 'General'
+
+    # --- product_price ---
+    for col in ['product_price', 'price', 'amount', 'purchase_price', 'order_amount', 'total_amount', 'purchase_amount']:
+        if col in df.columns:
+            df['product_price'] = pd.to_numeric(df[col], errors='coerce').fillna(1500.0); break
+    if 'product_price' not in df.columns:
+        df['product_price'] = np.random.exponential(scale=3000, size=len(df)) + 299
+
+    # --- days_to_return ---
+    for col in ['days_to_return', 'days_since_purchase', 'return_days', 'days_between', 'days_to_ship']:
+        if col in df.columns:
+            df['days_to_return'] = pd.to_numeric(df[col], errors='coerce').fillna(10).clip(1, 90); break
+    if 'days_to_return' not in df.columns:
+        df['days_to_return'] = np.random.choice([1,2,3,5,7,14,21,30], len(df),
+                                                 p=[0.15,0.15,0.15,0.15,0.15,0.1,0.1,0.05])
+
+    # --- abuse_type label ---
+    for col in ['abuse_type', 'return_type', 'fraud_type', 'label', 'class']:
+        if col in df.columns:
+            df['abuse_type'] = df[col].astype(str); break
+    if 'abuse_type' not in df.columns:
+        for col in ['is_fraud', 'fraud', 'is_abusive', 'abusive', 'churn']:
+            if col in df.columns:
+                df['abuse_type'] = np.where(pd.to_numeric(df[col], errors='coerce').fillna(0) > 0,
+                                            'Fraudulent Return', 'Legitimate'); break
+    if 'abuse_type' not in df.columns:
+        # Derive from behavioral signals when no label exists
+        high_price = df['product_price'] > df['product_price'].quantile(0.75)
+        fast_return = df['days_to_return'] <= 3
+        df['abuse_type'] = np.where(
+            (high_price & fast_return) | (np.random.rand(len(df)) < 0.10),
+            np.random.choice(['Wardrobing', 'Policy Abuser', 'Fraudulent Return'], len(df)),
+            'Legitimate'
+        )
+
+    df['_source'] = source_name
+    return df[['customer_id', 'product_category', 'product_price', 'days_to_return', 'abuse_type', '_source']]
+
+frames = []
+if all_csv_files:
+    for csv_path in all_csv_files:
+        try:
+            raw = pd.read_csv(csv_path)
+            normed = normalize_df(raw, source_name=os.path.basename(csv_path))
+            frames.append(normed)
+            print(f"  [OK] Loaded {len(normed):,} rows from {os.path.basename(csv_path)}")
+        except Exception as e:
+            print(f"  [SKIP] {csv_path}: {e}")
+
+if frames:
+    df = pd.concat(frames, ignore_index=True)
+    print(f"\nCombined dataset: {df.shape[0]:,} rows from {len(frames)} file(s)")
 else:
-    print("Dataset not found in /kaggle/input/. Generating synthetic e-commerce return data for pipeline...")
+    print("No CSV files found. Generating 30,000-row synthetic fallback dataset...")
     np.random.seed(42)
-    n_samples = 25000
-    n_customers = 3500
-    
-    cust_ids = [f"CUST_{np.random.randint(1000, 1000 + n_customers)}" for _ in range(n_samples)]
-    categories = np.random.choice(['Electronics', 'Clothing', 'Fashion', 'Home', 'Beauty'], n_samples)
+    n_samples = 30000
+    n_customers = 4000
+    cust_ids = [f"CUST_{np.random.randint(1000, 1000+n_customers)}" for _ in range(n_samples)]
+    categories = np.random.choice(['Electronics','Clothing','Fashion','Home','Beauty'], n_samples)
     prices = np.random.exponential(scale=3500, size=n_samples) + 299
-    days_to_ret = np.random.choice([1, 2, 3, 5, 7, 14, 21, 30], n_samples, p=[0.15, 0.15, 0.15, 0.15, 0.15, 0.1, 0.1, 0.05])
-    reasons = np.random.choice(['Defective', 'Wrong size', 'Not as described', 'Changed mind', 'Arrived late'], n_samples)
-    
-    # 15% overall abusive returns (serial returners, wardrobing, fraud)
-    is_abusive = (
-        (np.array(days_to_ret) <= 3) & (prices > 5000) & (np.random.rand(n_samples) > 0.4)
-    ) | (np.random.rand(n_samples) < 0.08)
-    
-    abuse_type = np.where(is_abusive, np.random.choice(['Fraudulent Return', 'Wardrobing', 'Policy Abuser'], n_samples), 'Legitimate')
-    
-    df = pd.DataFrame({
-        'customer_id': cust_ids,
-        'product_category': categories,
-        'product_price': np.round(prices, 2),
-        'days_to_return': days_to_ret,
-        'return_reason': reasons,
-        'abuse_type': abuse_type
-    })
+    days_to_ret = np.random.choice([1,2,3,5,7,14,21,30], n_samples, p=[0.15,0.15,0.15,0.15,0.15,0.1,0.1,0.05])
+    is_abusive = ((np.array(days_to_ret) <= 3) & (prices > 5000) & (np.random.rand(n_samples) > 0.4)) \
+                 | (np.random.rand(n_samples) < 0.08)
+    abuse_type = np.where(is_abusive, np.random.choice(['Fraudulent Return','Wardrobing','Policy Abuser'], n_samples), 'Legitimate')
+    df = pd.DataFrame({'customer_id': cust_ids, 'product_category': categories,
+                       'product_price': np.round(prices, 2), 'days_to_return': days_to_ret,
+                       'abuse_type': abuse_type, '_source': 'synthetic'})
 
-print(f"Dataset shape: {df.shape}")
+print(f"\nFinal dataset shape: {df.shape}")
+print(df['abuse_type'].value_counts())
 print(df.head())
+
 
 # %% [markdown]
 # ## 2. Feature Engineering & Label Formulation
