@@ -223,7 +223,17 @@ print(f"Train positive rate: {y_train.mean():.3f} | Test positive rate: {y_test.
 # ## 4. Model Training: XGBoost + Isolation Forest Ensemble
 
 # %%
+print("=" * 60)
+print("STAGE 1/3: Training XGBoost Classifier (250 boosting rounds)")
+print(f"  Train rows: {X_train.shape[0]:,}  |  Features: {X_train.shape[1]}")
+print(f"  Class imbalance ratio (scale_pos_weight): {((len(y_train)-sum(y_train))/(sum(y_train)+1e-5)):.2f}x")
+print("=" * 60)
+
 scale_pos_weight = (len(y_train) - sum(y_train)) / (sum(y_train) + 1e-5)
+
+# Split a small validation set to show live training loss per round
+from sklearn.model_selection import train_test_split
+X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.1, random_state=42, stratify=y_train)
 
 xgb_model = XGBClassifier(
     n_estimators=250,
@@ -233,18 +243,34 @@ xgb_model = XGBClassifier(
     subsample=0.85,
     colsample_bytree=0.85,
     eval_metric='logloss',
+    verbosity=1,
     random_state=42
 )
-xgb_model.fit(X_train, y_train)
+xgb_model.fit(
+    X_tr, y_tr,
+    eval_set=[(X_tr, y_tr), (X_val, y_val)],
+    verbose=25  # Print progress every 25 rounds
+)
+print(f"\n[OK] XGBoost training complete — {xgb_model.n_estimators} trees built")
 
 # Isolation Forest for unsupervised cold-start anomaly scoring
+print("\n" + "=" * 60)
+print("STAGE 2/3: Training Isolation Forest (150 trees, unsupervised)")
+print(f"  Contamination (expected abuse rate): 15%")
+print("=" * 60)
 iso_model = IsolationForest(
     n_estimators=150,
     contamination=0.15,
     random_state=42,
-    n_jobs=-1
+    n_jobs=-1,
+    verbose=1
 )
 iso_model.fit(X_train)
+print(f"[OK] Isolation Forest training complete — {iso_model.n_estimators} trees built")
+
+print("\n" + "=" * 60)
+print("STAGE 3/3: Building SHAP TreeExplainer for Local Explanations")
+print("=" * 60)
 
 # Compute blended risk score: 70% XGBoost + 30% Isolation Forest
 xgb_probs_test = xgb_model.predict_proba(X_test)[:, 1]
