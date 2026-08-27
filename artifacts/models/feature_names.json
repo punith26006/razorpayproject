@@ -1,0 +1,9 @@
+[
+  "product_price",
+  "days_to_return",
+  "return_rate_per_customer",
+  "price_vs_category_norm",
+  "return_velocity_7d",
+  "return_velocity_30d",
+  "refund_amount_ratio"
+]
