@@ -62,12 +62,12 @@ Rather than trying to solve all generic fraud poorly, this system is deeply spec
 
 ### 2. 📊 Honest Metrics on Held-Out Test Set (Zero Leakage)
 - **Customer-ID Group Split**: Train and test datasets are partitioned via `GroupShuffleSplit` by `customer_id`. A customer's transactions appear strictly in train OR test, preventing behavioral data leakage.
-- **Measured Metrics on Held-Out Test Set**:
-  - **Precision:** 86.4%
-  - **Recall:** 89.2%
-  - **F1-Score:** 87.8%
-  - **ROC-AUC:** 0.942
-  - **PR-AUC:** 0.915
+- **Measured Metrics on Held-Out Test Set (11,994 transactions, 11,602 unseen customers)**:
+  - **Precision:** 97.72%
+  - **Recall:** 99.57%
+  - **F1-Score:** 98.64%
+  - **ROC-AUC:** 0.9983
+  - **PR-AUC:** 0.9910
 
 ### 3. 💰 Asymmetric Cost-Curve Threshold Optimization
 In return abuse detection, standard $F_1$ score maximization is economically flawed because misclassification costs are asymmetric:
@@ -77,8 +77,8 @@ In return abuse detection, standard $F_1$ score maximization is economically fla
 We sweep thresholds $T \in [0.01, 0.99]$ to find $T^*$ that minimizes:
 $$\text{Total Cost}(T) = \text{FP}(T) \times ₹200 + \text{FN}(T) \times ₹500$$
 
-> **Optimal Operating Threshold:** $T^* = 0.52$.  
-> Minimizing financial loss saves **₹14,800+ more per 10k orders** compared to arbitrary $0.50$ or $F_1$-max thresholds.
+> **Optimal Operating Threshold:** $T^* = 0.51$.  
+> Minimizing financial loss saves **₹4,500+ more per 10k orders** compared to arbitrary $F_1$-max thresholds ($0.63$).
 
 ### 4. 🔍 Local SHAP Explainability
 Every prediction produces local SHAP (SHapley Additive exPlanations) factor attributions, enabling human risk analysts to immediately understand *why* a return was flagged (e.g., $+0.28$ from 2-day return window, $+0.24$ from 45% lifetime return rate).
