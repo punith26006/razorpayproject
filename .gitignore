@@ -15,11 +15,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Model Weights and Large Datasets (Trained on Kaggle)
-artifacts/models/*.pkl
+# Large Raw Datasets and Unused Checkpoints
 artifacts/models/*.pt
 artifacts/models/*.onnx
-artifacts/plots/*.png
 data/raw/
 *.csv
 
